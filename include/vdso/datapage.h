@@ -60,6 +60,8 @@ struct vdso_timestamp {
 
 /**
  * struct vdso_data - vdso datapage representation
+ * @arch_data:		architecture specific data (optional, defaults
+ *			to an empty struct)
  * @seq:		timebase sequence counter
  * @clock_mode:		clock mode
  * @cycle_last:		timebase at clocksource init
@@ -73,8 +75,6 @@ struct vdso_timestamp {
  * @tz_dsttime:		type of DST correction
  * @hrtimer_res:	hrtimer resolution
  * @__unused:		unused
- * @arch_data:		architecture specific data (optional, defaults
- *			to an empty struct)
  *
  * vdso_data will be accessed by 64 bit and compat code at the same time
  * so we should be careful before modifying this structure.
@@ -95,6 +95,8 @@ struct vdso_timestamp {
  * offset must be zero.
  */
 struct vdso_data {
+	struct arch_vdso_data	arch_data;
+
 	u32			seq;
 
 	s32			clock_mode;
@@ -115,8 +117,6 @@ struct vdso_data {
 	s32			tz_dsttime;
 	u32			hrtimer_res;
 	u32			__unused;
-
-	struct arch_vdso_data	arch_data;
 } ____cacheline_aligned;
 
 #define vdso_clock vdso_data
