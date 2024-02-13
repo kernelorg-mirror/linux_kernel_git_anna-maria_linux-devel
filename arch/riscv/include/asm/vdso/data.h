@@ -6,6 +6,9 @@
 #include <vdso/datapage.h>
 #include <asm/hwprobe.h>
 
+// FIXME: Abuse of arch_vdso_data - rework it to be instantiated separately and
+// not interfering with clocksource related vdso data.
+
 struct arch_vdso_data {
 	/* Stash static answers to the hwprobe queries when all CPUs are selected. */
 	__u64 all_cpu_hwprobe_values[RISCV_HWPROBE_MAX_KEY + 1];
