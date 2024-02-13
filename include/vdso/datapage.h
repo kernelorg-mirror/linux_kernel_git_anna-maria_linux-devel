@@ -5,6 +5,8 @@
 #ifndef __ASSEMBLY__
 
 #include <linux/compiler.h>
+#include <linux/cache.h>
+
 #include <uapi/linux/time.h>
 #include <uapi/linux/types.h>
 #include <uapi/asm-generic/errno-base.h>
@@ -115,7 +117,7 @@ struct vdso_data {
 	u32			__unused;
 
 	struct arch_vdso_data	arch_data;
-};
+} ____cacheline_aligned;
 
 /*
  * We use the hidden visibility to prevent the compiler from generating a GOT
