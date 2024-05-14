@@ -32,16 +32,16 @@
 extern char __vvar_page;
 
 #define DECLARE_VVAR(offset, type, name)				\
-	extern type vvar_ ## name[CS_BASES]				\
+	extern type vvar_ ## name					\
 	__attribute__((visibility("hidden")));				\
-	extern type timens_ ## name[CS_BASES]				\
+	extern type timens_ ## name					\
 	__attribute__((visibility("hidden")));				\
 
-#define VVAR(name) (vvar_ ## name)
-#define TIMENS(name) (timens_ ## name)
+#define VVAR(name) (&vvar_ ## name)
+#define TIMENS(name) (&timens_ ## name)
 
 #define DEFINE_VVAR(type, name)						\
-	type name[CS_BASES]						\
+	type name							\
 	__attribute__((section(".vvar_" #name), aligned(16))) __visible
 
 #endif
