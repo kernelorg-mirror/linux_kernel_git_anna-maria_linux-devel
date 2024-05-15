@@ -119,6 +119,8 @@ struct vdso_data {
 	struct arch_vdso_data	arch_data;
 } ____cacheline_aligned;
 
+#define vdso_clock vdso_data
+
 /*
  * We use the hidden visibility to prevent the compiler from generating a GOT
  * relocation. Not only is going through a GOT useless (the entry couldn't and
