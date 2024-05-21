@@ -127,10 +127,11 @@ static __always_inline int do_hres_timens(const struct vdso_data *vdns, clockid_
 }
 #endif
 
-static __always_inline int do_hres(const struct vdso_data *vd, clockid_t clk,
-				   struct __kernel_timespec *ts)
+static __always_inline
+int do_hres(const struct vdso_data *vd, const struct vdso_clock *vc,
+	    clockid_t clk, struct __kernel_timespec *ts)
 {
-	const struct vdso_timestamp *vdso_ts = &vd->basetime[clk];
+	const struct vdso_timestamp *vdso_ts = &vc->basetime[clk];
 	u64 cycles, sec, ns;
 	u32 seq;
 
@@ -150,23 +151,23 @@ static __always_inline int do_hres(const struct vdso_data *vd, clockid_t clk,
 		 * extra instructions while spin waiting for vd->seq to become
 		 * even again.
 		 */
-		while (unlikely((seq = READ_ONCE(vd->seq)) & 1)) {
+		while (unlikely((seq = READ_ONCE(vc->seq)) & 1)) {
 			if (IS_ENABLED(CONFIG_TIME_NS) &&
-			    vd->clock_mode == VDSO_CLOCKMODE_TIMENS)
-				return do_hres_timens(vd, clk, ts);
+			    vc->clock_mode == VDSO_CLOCKMODE_TIMENS)
+				return do_hres_timens(vc, clk, ts);
 			cpu_relax();
 		}
 		smp_rmb();
 
-		if (unlikely(!vdso_clocksource_ok(vd)))
+		if (unlikely(!vdso_clocksource_ok(vc)))
 			return -1;
 
-		cycles = __arch_get_hw_counter(vd->clock_mode, vd);
+		cycles = __arch_get_hw_counter(vc->clock_mode, vd);
 		if (unlikely(!vdso_cycles_ok(cycles)))
 			return -1;
-		ns = vdso_calc_ns(vd, cycles, vdso_ts->nsec);
+		ns = vdso_calc_ns(vc, cycles, vdso_ts->nsec);
 		sec = vdso_ts->sec;
-	} while (unlikely(vdso_read_retry(vd, seq)));
+	} while (unlikely(vdso_read_retry(vc, seq)));
 
 	/*
 	 * Do this outside the loop: a race inside the loop could result
@@ -266,7 +267,7 @@ __cvdso_clock_gettime_common(const struct vdso_data *vd, clockid_t clock,
 	else
 		return -1;
 
-	return do_hres(vc, clock, ts);
+	return do_hres(vd, vc, clock, ts);
 }
 
 static __maybe_unused int
@@ -322,7 +323,7 @@ __cvdso_gettimeofday_data(const struct vdso_data *vd,
 	if (likely(tv != NULL)) {
 		struct __kernel_timespec ts;
 
-		if (do_hres(&vc[CS_HRES_COARSE], CLOCK_REALTIME, &ts))
+		if (do_hres(vd, &vc[CS_HRES_COARSE], CLOCK_REALTIME, &ts))
 			return gettimeofday_fallback(tv, tz);
 
 		tv->tv_sec = ts.tv_sec;
