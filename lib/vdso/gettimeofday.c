@@ -69,36 +69,36 @@ static inline bool vdso_cycles_ok(u64 cycles)
 #endif
 
 #ifdef CONFIG_TIME_NS
-static __always_inline int do_hres_timens(const struct vdso_data *vdns, clockid_t clk,
-					  struct __kernel_timespec *ts)
+static __always_inline
+int do_hres_timens(const struct vdso_data *vdns, const struct vdso_clock *vcns,
+		   clockid_t clk, struct __kernel_timespec *ts)
 {
-	const struct timens_offset *offs = &vdns->offset[clk];
+	const struct vdso_data *vd = __arch_get_timens_vdso_data(vdns);
+	const struct timens_offset *offs = &vcns->offset[clk];
 	const struct vdso_timestamp *vdso_ts;
-	const struct vdso_data *vd;
+	const struct vdso_clock *vc = vd;
 	u64 cycles, ns;
 	u32 seq;
 	s64 sec;
 
-	vd = vdns - (clk == CLOCK_MONOTONIC_RAW ? CS_RAW : CS_HRES_COARSE);
-	vd = __arch_get_timens_vdso_data(vd);
 	if (clk != CLOCK_MONOTONIC_RAW)
-		vd = &vd[CS_HRES_COARSE];
+		vc = &vc[CS_HRES_COARSE];
 	else
-		vd = &vd[CS_RAW];
-	vdso_ts = &vd->basetime[clk];
+		vc = &vc[CS_RAW];
+	vdso_ts = &vc->basetime[clk];
 
 	do {
-		seq = vdso_read_begin(vd);
+		seq = vdso_read_begin(vc);
 
-		if (unlikely(!vdso_clocksource_ok(vd)))
+		if (unlikely(!vdso_clocksource_ok(vc)))
 			return -1;
 
-		cycles = __arch_get_hw_counter(vd->clock_mode, vd);
+		cycles = __arch_get_hw_counter(vc->clock_mode, vd);
 		if (unlikely(!vdso_cycles_ok(cycles)))
 			return -1;
-		ns = vdso_calc_ns(vd, cycles, vdso_ts->nsec);
+		ns = vdso_calc_ns(vc, cycles, vdso_ts->nsec);
 		sec = vdso_ts->sec;
-	} while (unlikely(vdso_read_retry(vd, seq)));
+	} while (unlikely(vdso_read_retry(vc, seq)));
 
 	/* Add the namespace offset */
 	sec += offs->sec;
@@ -120,8 +120,9 @@ const struct vdso_data *__arch_get_timens_vdso_data(const struct vdso_data *vd)
 	return NULL;
 }
 
-static __always_inline int do_hres_timens(const struct vdso_data *vdns, clockid_t clk,
-					  struct __kernel_timespec *ts)
+static __always_inline
+int do_hres_timens(const struct vdso_data *vdns, const struct vdso_clock *vcns,
+		   clockid_t clk, struct __kernel_timespec *ts)
 {
 	return -EINVAL;
 }
@@ -154,7 +155,7 @@ int do_hres(const struct vdso_data *vd, const struct vdso_clock *vc,
 		while (unlikely((seq = READ_ONCE(vc->seq)) & 1)) {
 			if (IS_ENABLED(CONFIG_TIME_NS) &&
 			    vc->clock_mode == VDSO_CLOCKMODE_TIMENS)
-				return do_hres_timens(vc, clk, ts);
+				return do_hres_timens(vd, vc, clk, ts);
 			cpu_relax();
 		}
 		smp_rmb();
