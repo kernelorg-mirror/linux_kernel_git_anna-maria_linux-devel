@@ -181,21 +181,25 @@ int do_hres(const struct vdso_data *vd, const struct vdso_clock *vc,
 }
 
 #ifdef CONFIG_TIME_NS
-static __always_inline int do_coarse_timens(const struct vdso_data *vdns, clockid_t clk,
-					    struct __kernel_timespec *ts)
+static __always_inline
+int do_coarse_timens(const struct vdso_data *vdns, const struct vdso_clock *vcns,
+		     clockid_t clk, struct __kernel_timespec *ts)
 {
 	const struct vdso_data *vd = __arch_get_timens_vdso_data(vdns);
-	const struct vdso_timestamp *vdso_ts = &vd->basetime[clk];
-	const struct timens_offset *offs = &vdns->offset[clk];
+	const struct timens_offset *offs = &vcns->offset[clk];
+	const struct vdso_timestamp *vdso_ts;
+	const struct vdso_clock *vc = vd;
 	u64 nsec;
 	s64 sec;
 	s32 seq;
 
+	vdso_ts = &vc->basetime[clk];
+
 	do {
-		seq = vdso_read_begin(vd);
+		seq = vdso_read_begin(vc);
 		sec = vdso_ts->sec;
 		nsec = vdso_ts->nsec;
-	} while (unlikely(vdso_read_retry(vd, seq)));
+	} while (unlikely(vdso_read_retry(vc, seq)));
 
 	/* Add the namespace offset */
 	sec += offs->sec;
@@ -210,8 +214,9 @@ static __always_inline int do_coarse_timens(const struct vdso_data *vdns, clocki
 	return 0;
 }
 #else
-static __always_inline int do_coarse_timens(const struct vdso_data *vdns, clockid_t clk,
-					    struct __kernel_timespec *ts)
+static __always_inline
+int do_coarse_timens(const struct vdso_data *vdns, const struct vdso_clock *vcns,
+		     clockid_t clk, struct __kernel_timespec *ts)
 {
 	return -1;
 }
@@ -232,7 +237,7 @@ int do_coarse(const struct vdso_data *vd, const struct vdso_clock *vc,
 		while ((seq = READ_ONCE(vc->seq)) & 1) {
 			if (IS_ENABLED(CONFIG_TIME_NS) &&
 			    vc->clock_mode == VDSO_CLOCKMODE_TIMENS)
-				return do_coarse_timens(vc, clk, ts);
+				return do_coarse_timens(vd, vc, clk, ts);
 			cpu_relax();
 		}
 		smp_rmb();
