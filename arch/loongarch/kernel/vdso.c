@@ -64,7 +64,7 @@ static vm_fault_t vvar_fault(const struct vm_special_mapping *sm,
 		 * If a task belongs to a time namespace then a namespace specific
 		 * VVAR is mapped with the VVAR_GENERIC_PAGE_OFFSET and the real
 		 * VVAR page is mapped with the VVAR_TIMENS_PAGE_OFFSET offset.
-		 * See also the comment near timens_setup_vdso_data().
+		 * See also the comment near timens_setup_vdso_clock_data().
 		 */
 		if (!timens_page)
 			return VM_FAULT_SIGBUS;
@@ -126,7 +126,7 @@ struct vdso_data *arch_get_vdso_data(void *vvar_page)
  * task changes namespace we must unmap its vvar data for the old namespace.
  * Subsequent faults will map in data for the new namespace.
  *
- * For more details see timens_setup_vdso_data().
+ * For more details see timens_setup_vdso_clock_data().
  */
 int vdso_join_timens(struct task_struct *task, struct time_namespace *ns)
 {

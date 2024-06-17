@@ -106,7 +106,7 @@ static int vdso_mremap(const struct vm_special_mapping *sm,
  * non-root time namespace. Whenever a task changes its namespace, the VVAR
  * page tables are cleared and then they will re-faulted with a
  * corresponding layout.
- * See also the comment near timens_setup_vdso_data() for details.
+ * See also the comment near timens_setup_vdso_clock_data() for details.
  */
 int vdso_join_timens(struct task_struct *task, struct time_namespace *ns)
 {
@@ -158,7 +158,7 @@ static vm_fault_t vvar_fault(const struct vm_special_mapping *sm,
 		 * specific VVAR is mapped with the sym_vvar_page offset and
 		 * the real VVAR page is mapped with the sym_timens_page
 		 * offset.
-		 * See also the comment near timens_setup_vdso_data().
+		 * See also the comment near timens_setup_vdso_clock_data().
 		 */
 		if (timens_page) {
 			unsigned long addr;
