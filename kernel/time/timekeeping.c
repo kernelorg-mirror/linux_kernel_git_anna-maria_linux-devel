@@ -1972,11 +1972,11 @@ void timekeeping_resume(void)
 
 int timekeeping_suspend(void)
 {
-	struct timekeeper *tk = &tk_core.timekeeper;
-	unsigned long flags;
-	struct timespec64		delta, delta_delta;
-	static struct timespec64	old_delta;
+	struct timekeeper *tk = &tk_core.shadow_timekeeper;
+	struct timespec64 delta, delta_delta;
+	static struct timespec64 old_delta;
 	struct clocksource *curr_clock;
+	unsigned long flags;
 	u64 cycle_now;
 
 	read_persistent_clock64(&timekeeping_suspend_time);
@@ -1992,7 +1992,6 @@ int timekeeping_suspend(void)
 	suspend_timing_needed = true;
 
 	raw_spin_lock_irqsave(&tk_core.lock, flags);
-	write_seqcount_begin(&tk_core.seq);
 	timekeeping_forward_now(tk);
 	timekeeping_suspended = 1;
 
@@ -2027,9 +2026,8 @@ int timekeeping_suspend(void)
 		}
 	}
 
-	timekeeping_update(&tk_core, tk, TK_MIRROR);
+	timekeeping_update_staged(&tk_core, 0);
 	halt_fast_timekeeper(tk);
-	write_seqcount_end(&tk_core.seq);
 	raw_spin_unlock_irqrestore(&tk_core.lock, flags);
 
 	tick_suspend();
