@@ -466,10 +466,6 @@ API usage
   **UAPI_INCLUDE**
     No #include statements in include/uapi should use a uapi/ path.
 
-  **USLEEP_RANGE**
-    usleep_range() should be preferred over udelay(). The proper way of
-    using usleep_range() is mentioned in the kernel docs.
-
 
 Comments
 --------
